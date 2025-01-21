@@ -42,7 +42,7 @@ configure_file(spectrumlauncher.rc.in spectrumlauncher.rc @ONLY)
 configure_file(spectrumlauncher.manifest.in spectrumlauncher.manifest @ONLY)
 configure_file(spectrumlauncher.ico spectrumlauncher.ico COPYONLY)
 
-f(MSVC)
+if(MSVC)
     set(Launcher_MSVC_Redist_NSIS_Section [=[
 !ifdef haveNScurl
 Section "Visual Studio Runtime"
