@@ -50,7 +50,7 @@ class ResourceDownloadDialog : public QDialog, public BasePageProvider {
    public:
     using DownloadTaskPtr = shared_qobject_ptr<ResourceDownloadTask>;
 
-    ResourceDownloadDialog(QWidget* parent, const std::shared_ptr<ResourceFolderModel> base_model);
+    ResourceDownloadDialog(QWidget* parent, std::shared_ptr<ResourceFolderModel> base_model);
 
     void initializeContainer();
     void connectButtons();
@@ -106,6 +106,8 @@ class ModDownloadDialog final : public ResourceDownloadDialog {
 
     QList<BasePage*> getPages() override;
     GetModDependenciesTask::Ptr getModDependenciesTask() override;
+
+    void setModMetadata(std::shared_ptr<Metadata::ModStruct>);
 
    private:
     BaseInstance* m_instance;

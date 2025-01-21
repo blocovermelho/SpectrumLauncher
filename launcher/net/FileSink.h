@@ -35,14 +35,13 @@
 
 #pragma once
 
-#include <QSaveFile>
-
+#include "PSaveFile.h"
 #include "Sink.h"
 
 namespace Net {
 class FileSink : public Sink {
    public:
-    FileSink(QString filename) : m_filename(filename){};
+    FileSink(QString filename) : m_filename(filename) {};
     virtual ~FileSink() = default;
 
    public:
@@ -60,6 +59,6 @@ class FileSink : public Sink {
    protected:
     QString m_filename;
     bool wroteAnyData = false;
-    std::unique_ptr<QSaveFile> m_output_file;
+    std::unique_ptr<PSaveFile> m_output_file;
 };
 }  // namespace Net

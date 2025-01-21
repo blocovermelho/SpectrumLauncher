@@ -49,8 +49,12 @@
 #include <QMessageBox>
 #include <QString>
 #include <QUrl>
+#include <algorithm>
 
+#include "QObjectPtr.h"
 #include "VersionPage.h"
+#include "meta/JsonFormat.h"
+#include "tasks/SequentialTask.h"
 #include "ui/dialogs/InstallLoaderDialog.h"
 #include "ui_VersionPage.h"
 
@@ -63,11 +67,9 @@
 
 #include "DesktopServices.h"
 #include "Exception.h"
-#include "Version.h"
 #include "icons/IconList.h"
 #include "minecraft/PackProfile.h"
 #include "minecraft/auth/AccountList.h"
-#include "minecraft/mod/Mod.h"
 
 #include "meta/Index.h"
 #include "meta/VersionList.h"
@@ -241,7 +243,7 @@ void VersionPage::updateButtons(int row)
     ui->actionRemove->setEnabled(patch && patch->isRemovable());
     ui->actionMove_down->setEnabled(patch && patch->isMoveable());
     ui->actionMove_up->setEnabled(patch && patch->isMoveable());
-    ui->actionChange_version->setEnabled(patch && patch->isVersionChangeable());
+    ui->actionChange_version->setEnabled(patch && patch->isVersionChangeable(false));
     ui->actionEdit->setEnabled(patch && patch->isCustom());
     ui->actionCustomize->setEnabled(patch && patch->isCustomizable());
     ui->actionRevert->setEnabled(patch && patch->isRevertible());
@@ -250,8 +252,11 @@ void VersionPage::updateButtons(int row)
 bool VersionPage::reloadPackProfile()
 {
     try {
-        m_profile->reload(Net::Mode::Online);
-        return true;
+        auto result = m_profile->reload(Net::Mode::Online);
+        if (!result) {
+            QMessageBox::critical(this, tr("Error"), result.error);
+        }
+        return result;
     } catch (const Exception& e) {
         QMessageBox::critical(this, tr("Error"), e.cause());
         return false;
@@ -295,16 +300,9 @@ void VersionPage::on_actionRemove_triggered()
     m_container->refreshContainer();
 }
 
-void VersionPage::on_actionInstall_mods_triggered()
-{
-    if (m_container) {
-        m_container->selectPage("mods");
-    }
-}
-
 void VersionPage::on_actionAdd_to_Minecraft_jar_triggered()
 {
-    auto list = GuiUtil::BrowseForFiles("jarmod", tr("Select jar mods"), tr("Minecraft.jar mods (*.zip *.jar)"),
+    auto list = GuiUtil::BrowseForFiles("jarmod", tr("Select jar mods"), tr("Minecraft.jar mods") + " (*.zip *.jar)",
                                         APPLICATION->settings()->get("CentralModsDir").toString(), this->parentWidget());
     if (!list.empty()) {
         m_profile->installJarMods(list);
@@ -314,7 +312,7 @@ void VersionPage::on_actionAdd_to_Minecraft_jar_triggered()
 
 void VersionPage::on_actionReplace_Minecraft_jar_triggered()
 {
-    auto jarPath = GuiUtil::BrowseForFile("jar", tr("Select jar"), tr("Minecraft.jar replacement (*.jar)"),
+    auto jarPath = GuiUtil::BrowseForFile("jar", tr("Select jar"), tr("Minecraft.jar replacement") + " (*.jar)",
                                           APPLICATION->settings()->get("CentralModsDir").toString(), this->parentWidget());
     if (!jarPath.isEmpty()) {
         m_profile->installCustomJar(jarPath);
@@ -324,7 +322,7 @@ void VersionPage::on_actionReplace_Minecraft_jar_triggered()
 
 void VersionPage::on_actionImport_Components_triggered()
 {
-    QStringList list = GuiUtil::BrowseForFiles("component", tr("Select components"), tr("Components (*.json)"),
+    QStringList list = GuiUtil::BrowseForFiles("component", tr("Select components"), tr("Components") + " (*.json)",
                                                APPLICATION->settings()->get("CentralModsDir").toString(), this->parentWidget());
 
     if (!list.isEmpty()) {
@@ -339,7 +337,7 @@ void VersionPage::on_actionImport_Components_triggered()
 
 void VersionPage::on_actionAdd_Agents_triggered()
 {
-    QStringList list = GuiUtil::BrowseForFiles("agent", tr("Select agents"), tr("Java agents (*.jar)"),
+    QStringList list = GuiUtil::BrowseForFiles("agent", tr("Select agents"), tr("Java agents") + " (*.jar)",
                                                APPLICATION->settings()->get("CentralModsDir").toString(), this->parentWidget());
 
     if (!list.isEmpty())
@@ -377,10 +375,24 @@ void VersionPage::on_actionChange_version_triggered()
     auto patch = m_profile->getComponent(versionRow);
     auto name = patch->getName();
     auto list = patch->getVersionList();
+    list->clearExternalRecommends();
     if (!list) {
         return;
     }
     auto uid = list->uid();
+
+    // recommend the correct lwjgl version for the current minecraft version
+    if (uid == "org.lwjgl" || uid == "org.lwjgl3") {
+        auto minecraft = m_profile->getComponent("net.minecraft");
+        auto lwjglReq = std::find_if(minecraft->m_cachedRequires.cbegin(), minecraft->m_cachedRequires.cend(),
+                                     [uid](const Meta::Require& req) -> bool { return req.uid == uid; });
+        if (lwjglReq != minecraft->m_cachedRequires.cend()) {
+            auto lwjglVersion = !lwjglReq->equalsVersion.isEmpty() ? lwjglReq->equalsVersion : lwjglReq->suggests;
+            if (!lwjglVersion.isEmpty()) {
+                list->addExternalRecommends({ lwjglVersion });
+            }
+        }
+    }
 
     VersionSelectDialog vselect(list.get(), tr("Change %1 version").arg(name), this);
     if (uid == "net.fabricmc.intermediary" || uid == "org.quiltmc.hashed") {
@@ -400,6 +412,11 @@ void VersionPage::on_actionChange_version_triggered()
     bool important = false;
     if (uid == "net.minecraft") {
         important = true;
+        if (APPLICATION->settings()->get("AutomaticJavaSwitch").toBool() && m_inst->settings()->get("AutomaticJava").toBool() &&
+            m_inst->settings()->get("OverrideJavaLocation").toBool()) {
+            m_inst->settings()->set("OverrideJavaLocation", false);
+            m_inst->settings()->set("JavaPath", "");
+        }
     }
     m_profile->setComponentVersion(uid, vselect.selectedVersion()->descriptor(), important);
     m_profile->resolve(Net::Mode::Online);
@@ -417,14 +434,18 @@ void VersionPage::on_actionDownload_All_triggered()
         return;
     }
 
-    auto updateTask = m_inst->createUpdateTask(Net::Mode::Online);
-    if (!updateTask) {
+    auto updateTasks = m_inst->createUpdateTask();
+    if (updateTasks.isEmpty()) {
         return;
     }
+    auto task = makeShared<SequentialTask>();
+    for (auto t : updateTasks) {
+        task->addTask(t);
+    }
     ProgressDialog tDialog(this);
-    connect(updateTask.get(), &Task::failed, this, &VersionPage::onGameUpdateError);
+    connect(task.get(), &Task::failed, this, &VersionPage::onGameUpdateError);
     // FIXME: unused return value
-    tDialog.execWithTask(updateTask.get());
+    tDialog.execWithTask(task.get());
     updateButtons();
     m_container->refreshContainer();
 }
@@ -454,12 +475,12 @@ void VersionPage::on_actionAdd_Empty_triggered()
 
 void VersionPage::on_actionLibrariesFolder_triggered()
 {
-    DesktopServices::openDirectory(m_inst->getLocalLibraryPath(), true);
+    DesktopServices::openPath(m_inst->getLocalLibraryPath(), true);
 }
 
 void VersionPage::on_actionMinecraftFolder_triggered()
 {
-    DesktopServices::openDirectory(m_inst->gameRoot(), true);
+    DesktopServices::openPath(m_inst->gameRoot(), true);
 }
 
 void VersionPage::versionCurrent(const QModelIndex& current, [[maybe_unused]] const QModelIndex& previous)

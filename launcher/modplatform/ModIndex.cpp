@@ -2,6 +2,7 @@
 /*
  *  Prism Launcher - Minecraft Launcher
  *  Copyright (c) 2022 flowln <flowlnlnln@gmail.com>
+ *  Copyright (c) 2023 Trial97 <alexandru.tripon97@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +30,19 @@ static const QMap<QString, IndexedVersionType::VersionType> s_indexed_version_ty
     { "beta", IndexedVersionType::VersionType::Beta },
     { "alpha", IndexedVersionType::VersionType::Alpha }
 };
+
+static const QList<ModLoaderType> loaderList = { NeoForge, Forge, Cauldron, LiteLoader, Quilt, Fabric };
+
+QList<ModLoaderType> modLoaderTypesToList(ModLoaderTypes flags)
+{
+    QList<ModLoaderType> flagList;
+    for (auto flag : loaderList) {
+        if (flags.testFlag(flag)) {
+            flagList.append(flag);
+        }
+    }
+    return flagList;
+}
 
 IndexedVersionType::IndexedVersionType(const QString& type) : IndexedVersionType(enumFromString(type)) {}
 
@@ -58,7 +72,7 @@ IndexedVersionType::VersionType IndexedVersionType::enumFromString(const QString
     return s_indexed_version_type_names.value(type, IndexedVersionType::VersionType::Unknown);
 }
 
-auto ProviderCapabilities::name(ResourceProvider p) -> const char*
+const char* ProviderCapabilities::name(ResourceProvider p)
 {
     switch (p) {
         case ResourceProvider::MODRINTH:
@@ -68,7 +82,8 @@ auto ProviderCapabilities::name(ResourceProvider p) -> const char*
     }
     return {};
 }
-auto ProviderCapabilities::readableName(ResourceProvider p) -> QString
+
+QString ProviderCapabilities::readableName(ResourceProvider p)
 {
     switch (p) {
         case ResourceProvider::MODRINTH:
@@ -78,7 +93,8 @@ auto ProviderCapabilities::readableName(ResourceProvider p) -> QString
     }
     return {};
 }
-auto ProviderCapabilities::hashType(ResourceProvider p) -> QStringList
+
+QStringList ProviderCapabilities::hashType(ResourceProvider p)
 {
     switch (p) {
         case ResourceProvider::MODRINTH:
@@ -90,34 +106,13 @@ auto ProviderCapabilities::hashType(ResourceProvider p) -> QStringList
     return {};
 }
 
-auto ProviderCapabilities::hash(ResourceProvider p, QIODevice* device, QString type) -> QString
-{
-    QCryptographicHash::Algorithm algo = QCryptographicHash::Sha1;
-    switch (p) {
-        case ResourceProvider::MODRINTH: {
-            algo = (type == "sha1") ? QCryptographicHash::Sha1 : QCryptographicHash::Sha512;
-            break;
-        }
-        case ResourceProvider::FLAME:
-            algo = (type == "sha1") ? QCryptographicHash::Sha1 : QCryptographicHash::Md5;
-            break;
-    }
-
-    QCryptographicHash hash(algo);
-    if (!hash.addData(device))
-        qCritical() << "Failed to read JAR to create hash!";
-
-    Q_ASSERT(hash.result().length() == hash.hashLength(algo));
-    return { hash.result().toHex() };
-}
-
 QString getMetaURL(ResourceProvider provider, QVariant projectID)
 {
     return ((provider == ModPlatform::ResourceProvider::FLAME) ? "https://www.curseforge.com/projects/" : "https://modrinth.com/mod/") +
            projectID.toString();
 }
 
-auto getModLoaderString(ModLoaderType type) -> const QString
+auto getModLoaderAsString(ModLoaderType type) -> const QString
 {
     switch (type) {
         case NeoForge:
@@ -136,6 +131,23 @@ auto getModLoaderString(ModLoaderType type) -> const QString
             break;
     }
     return "";
+}
+
+auto getModLoaderFromString(QString type) -> ModLoaderType
+{
+    if (type == "neoforge")
+        return NeoForge;
+    if (type == "forge")
+        return Forge;
+    if (type == "cauldron")
+        return Cauldron;
+    if (type == "liteloader")
+        return LiteLoader;
+    if (type == "fabric")
+        return Fabric;
+    if (type == "quilt")
+        return Quilt;
+    return {};
 }
 
 }  // namespace ModPlatform

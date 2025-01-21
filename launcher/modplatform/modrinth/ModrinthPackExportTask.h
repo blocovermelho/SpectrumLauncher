@@ -27,6 +27,7 @@
 #include "tasks/Task.h"
 
 class ModrinthPackExportTask : public Task {
+    Q_OBJECT
    public:
     ModrinthPackExportTask(const QString& name,
                            const QString& version,
@@ -68,7 +69,7 @@ class ModrinthPackExportTask : public Task {
     void collectFiles();
     void collectHashes();
     void makeApiRequest();
-    void parseApiResponse(const std::shared_ptr<QByteArray> response);
+    void parseApiResponse(std::shared_ptr<QByteArray> response);
     void buildZip();
 
     QByteArray generateIndex();

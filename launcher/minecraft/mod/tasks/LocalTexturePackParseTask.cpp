@@ -230,8 +230,7 @@ bool validate(QFileInfo file)
 
 }  // namespace TexturePackUtils
 
-LocalTexturePackParseTask::LocalTexturePackParseTask(int token, TexturePack& rp) : Task(nullptr, false), m_token(token), m_texture_pack(rp)
-{}
+LocalTexturePackParseTask::LocalTexturePackParseTask(int token, TexturePack& rp) : Task(false), m_token(token), m_texture_pack(rp) {}
 
 bool LocalTexturePackParseTask::abort()
 {
@@ -241,8 +240,10 @@ bool LocalTexturePackParseTask::abort()
 
 void LocalTexturePackParseTask::executeTask()
 {
-    if (!TexturePackUtils::process(m_texture_pack))
+    if (!TexturePackUtils::process(m_texture_pack)) {
+        emitFailed("this is not a texture pack");
         return;
+    }
 
     if (m_aborted)
         emitAborted();

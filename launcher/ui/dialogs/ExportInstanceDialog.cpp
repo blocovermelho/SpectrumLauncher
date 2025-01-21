@@ -51,6 +51,7 @@
 #include <icons/IconList.h>
 #include <QDebug>
 #include <QFileInfo>
+#include <QPushButton>
 #include <QSaveFile>
 #include <QSortFilterProxyModel>
 #include <QStack>
@@ -85,6 +86,9 @@ ExportInstanceDialog::ExportInstanceDialog(InstancePtr instance, QWidget* parent
     auto headerView = ui->treeView->header();
     headerView->setSectionResizeMode(QHeaderView::ResizeToContents);
     headerView->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("Cancel"));
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("OK"));
 }
 
 ExportInstanceDialog::~ExportInstanceDialog()
@@ -146,7 +150,7 @@ void ExportInstanceDialog::doExport()
         return;
     }
 
-    auto task = makeShared<MMCZip::ExportToZipTask>(output, m_instance->instanceRoot(), files, "", true);
+    auto task = makeShared<MMCZip::ExportToZipTask>(output, m_instance->instanceRoot(), files, "", true, true);
 
     connect(task.get(), &Task::failed, this,
             [this, output](QString reason) { CustomMessageBox::selectable(this, tr("Error"), reason, QMessageBox::Critical)->show(); });

@@ -157,20 +157,6 @@ void MojangVersionFormat::readVersionProperties(const QJsonObject& in, VersionFi
     Bits::readString(in, "id", out->minecraftVersion);
     Bits::readString(in, "mainClass", out->mainClass);
     Bits::readString(in, "minecraftArguments", out->minecraftArguments);
-    if (out->minecraftArguments.isEmpty()) {
-        QString processArguments;
-        Bits::readString(in, "processArguments", processArguments);
-        QString toCompare = processArguments.toLower();
-        if (toCompare == "legacy") {
-            out->minecraftArguments = " ${auth_player_name} ${auth_session}";
-        } else if (toCompare == "username_session") {
-            out->minecraftArguments = "--username ${auth_player_name} --session ${auth_session}";
-        } else if (toCompare == "username_session_version") {
-            out->minecraftArguments = "--username ${auth_player_name} --session ${auth_session} --version ${profile_name}";
-        } else if (!toCompare.isEmpty()) {
-            out->addProblem(ProblemSeverity::Error, QObject::tr("processArguments is set to unknown value '%1'").arg(processArguments));
-        }
-    }
     Bits::readString(in, "type", out->type);
 
     Bits::readString(in, "assets", out->assets);
@@ -198,6 +184,9 @@ void MojangVersionFormat::readVersionProperties(const QJsonObject& in, VersionFi
         for (auto compatible : requireArray(in.value("compatibleJavaMajors"))) {
             out->compatibleJavaMajors.append(requireInteger(compatible));
         }
+    }
+    if (in.contains("compatibleJavaName")) {
+        out->compatibleJavaName = requireString(in.value("compatibleJavaName"));
     }
 
     if (in.contains("downloads")) {
@@ -272,6 +261,9 @@ void MojangVersionFormat::writeVersionProperties(const VersionFile* in, QJsonObj
             compatibleJavaMajorsOut.append(compatibleJavaMajor);
         }
         out.insert("compatibleJavaMajors", compatibleJavaMajorsOut);
+    }
+    if (!in->compatibleJavaName.isEmpty()) {
+        writeString(out, "compatibleJavaName", in->compatibleJavaName);
     }
 }
 

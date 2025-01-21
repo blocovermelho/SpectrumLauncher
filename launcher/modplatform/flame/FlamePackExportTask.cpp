@@ -103,8 +103,7 @@ void FlamePackExportTask::collectHashes()
     setStatus(tr("Finding file hashes..."));
     setProgress(1, 5);
     auto allMods = mcInstance->loaderModList()->allMods();
-    ConcurrentTask::Ptr hashingTask(
-        new ConcurrentTask(this, "MakeHashesTask", APPLICATION->settings()->get("NumberOfConcurrentTasks").toInt()));
+    ConcurrentTask::Ptr hashingTask(new ConcurrentTask("MakeHashesTask", APPLICATION->settings()->get("NumberOfConcurrentTasks").toInt()));
     task.reset(hashingTask);
     for (const QFileInfo& file : files) {
         const QString relative = gameRoot.relativeFilePath(file.absoluteFilePath());
@@ -116,7 +115,7 @@ void FlamePackExportTask::collectHashes()
 
         if (relative.startsWith("resourcepacks/") &&
             (relative.endsWith(".zip") || relative.endsWith(".zip.disabled"))) {  // is resourcepack
-            auto hashTask = Hashing::createFlameHasher(file.absoluteFilePath());
+            auto hashTask = Hashing::createHasher(file.absoluteFilePath(), ModPlatform::ResourceProvider::FLAME);
             connect(hashTask.get(), &Hashing::Hasher::resultsReady, [this, relative, file](QString hash) {
                 if (m_state == Task::State::Running) {
                     pendingHashes.insert(hash, { relative, file.absoluteFilePath(), relative.endsWith(".zip") });
@@ -140,7 +139,7 @@ void FlamePackExportTask::collectHashes()
                 continue;
             }
 
-            auto hashTask = Hashing::createFlameHasher(mod->fileinfo().absoluteFilePath());
+            auto hashTask = Hashing::createHasher(mod->fileinfo().absoluteFilePath(), ModPlatform::ResourceProvider::FLAME);
             connect(hashTask.get(), &Hashing::Hasher::resultsReady, [this, mod](QString hash) {
                 if (m_state == Task::State::Running) {
                     pendingHashes.insert(hash, { mod->name(), mod->fileinfo().absoluteFilePath(), mod->enabled(), true });
@@ -201,7 +200,7 @@ void FlamePackExportTask::makeApiRequest()
                        << " reason: " << parseError.errorString();
             qWarning() << *response;
 
-            failed(parseError.errorString());
+            emitFailed(parseError.errorString());
             return;
         }
 
@@ -213,6 +212,7 @@ void FlamePackExportTask::makeApiRequest()
             if (dataArr.isEmpty()) {
                 qWarning() << "No matches found for fingerprint search!";
 
+                getProjectsInfo();
                 return;
             }
             for (auto match : dataArr) {
@@ -243,9 +243,9 @@ void FlamePackExportTask::makeApiRequest()
             qDebug() << doc;
         }
         pendingHashes.clear();
+        getProjectsInfo();
     });
-    connect(task.get(), &Task::finished, this, &FlamePackExportTask::getProjectsInfo);
-    connect(task.get(), &NetJob::failed, this, &FlamePackExportTask::emitFailed);
+    connect(task.get(), &Task::failed, this, &FlamePackExportTask::getProjectsInfo);
     task->start();
 }
 
@@ -279,7 +279,7 @@ void FlamePackExportTask::getProjectsInfo()
             qWarning() << "Error while parsing JSON response from CurseForge projects task at " << parseError.offset
                        << " reason: " << parseError.errorString();
             qWarning() << *response;
-            failed(parseError.errorString());
+            emitFailed(parseError.errorString());
             return;
         }
 
@@ -323,6 +323,7 @@ void FlamePackExportTask::getProjectsInfo()
         }
         buildZip();
     });
+    connect(projTask.get(), &Task::failed, this, &FlamePackExportTask::emitFailed);
     task.reset(projTask);
     task->start();
 }
@@ -332,7 +333,7 @@ void FlamePackExportTask::buildZip()
     setStatus(tr("Adding files..."));
     setProgress(4, 5);
 
-    auto zipTask = makeShared<MMCZip::ExportToZipTask>(output, gameRoot, files, "overrides/", true);
+    auto zipTask = makeShared<MMCZip::ExportToZipTask>(output, gameRoot, files, "overrides/", true, false);
     zipTask->addExtraFile("manifest.json", generateIndex());
     zipTask->addExtraFile("modlist.html", generateHTML());
 
@@ -392,13 +393,17 @@ QByteArray FlamePackExportTask::generateIndex()
             version["version"] = minecraft->m_version;
         QString id;
         if (quilt != nullptr)
-            id = "quilt-" + quilt->getVersion();
+            id = "quilt-" + quilt->m_version;
         else if (fabric != nullptr)
-            id = "fabric-" + fabric->getVersion();
+            id = "fabric-" + fabric->m_version;
         else if (forge != nullptr)
-            id = "forge-" + forge->getVersion();
-        else if (neoforge != nullptr)
-            id = "neoforge-" + neoforge->getVersion();
+            id = "forge-" + forge->m_version;
+        else if (neoforge != nullptr) {
+            id = "neoforge-";
+            if (minecraft->m_version == "1.20.1")
+                id += "1.20.1-";
+            id += neoforge->m_version;
+        }
         version["modLoaders"] = QJsonArray();
         if (!id.isEmpty()) {
             QJsonObject loader;

@@ -278,12 +278,14 @@ void InstanceView::mousePressEvent(QMouseEvent* event)
     m_pressedAlreadySelected = selectionModel()->isSelected(m_pressedIndex);
     m_pressedPosition = geometryPos;
 
-    VisualGroup::HitResults hitResult;
-    m_pressedCategory = categoryAt(geometryPos, hitResult);
-    if (m_pressedCategory && hitResult & VisualGroup::CheckboxHit) {
-        setState(m_pressedCategory->collapsed ? ExpandingState : CollapsingState);
-        event->accept();
-        return;
+    if (event->button() == Qt::LeftButton) {
+        VisualGroup::HitResults hitResult;
+        m_pressedCategory = categoryAt(geometryPos, hitResult);
+        if (m_pressedCategory && hitResult & VisualGroup::CheckboxHit) {
+            setState(m_pressedCategory->collapsed ? ExpandingState : CollapsingState);
+            event->accept();
+            return;
+        }
     }
 
     if (index.isValid() && (index.flags() & Qt::ItemIsEnabled)) {
@@ -366,10 +368,7 @@ void InstanceView::mouseReleaseEvent(QMouseEvent* event)
 
     VisualGroup::HitResults hitResult;
 
-    bool click =
-        (index == m_pressedIndex && index.isValid()) || (m_pressedCategory && m_pressedCategory == categoryAt(geometryPos, hitResult));
-
-    if (click && m_pressedCategory) {
+    if (event->button() == Qt::LeftButton && m_pressedCategory != nullptr && m_pressedCategory == categoryAt(geometryPos, hitResult)) {
         if (state() == ExpandingState) {
             m_pressedCategory->collapsed = false;
             emit groupStateChanged(m_pressedCategory->text, false);
@@ -397,7 +396,7 @@ void InstanceView::mouseReleaseEvent(QMouseEvent* event)
 
     setState(NoState);
 
-    if (click) {
+    if (index == m_pressedIndex && index.isValid()) {
         if (event->button() == Qt::LeftButton) {
             emit clicked(index);
         }
@@ -459,16 +458,18 @@ void InstanceView::paintEvent([[maybe_unused]] QPaintEvent* event)
     QPainter painter(this->viewport());
 
     if (m_catVisible) {
+        painter.setOpacity(APPLICATION->settings()->get("CatOpacity").toFloat() / 100);
         int widWidth = this->viewport()->width();
         int widHeight = this->viewport()->height();
         if (m_catPixmap.width() < widWidth)
             widWidth = m_catPixmap.width();
         if (m_catPixmap.height() < widHeight)
             widHeight = m_catPixmap.height();
-        auto pixmap = m_catPixmap.scaled(widWidth, widHeight, Qt::KeepAspectRatio);
+        auto pixmap = m_catPixmap.scaled(widWidth, widHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         QRect rectOfPixmap = pixmap.rect();
         rectOfPixmap.moveBottomRight(this->viewport()->rect().bottomRight());
         painter.drawPixmap(rectOfPixmap.topLeft(), pixmap);
+        painter.setOpacity(1.0);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -481,32 +482,42 @@ void InstanceView::paintEvent([[maybe_unused]] QPaintEvent* event)
 
     if (model()->rowCount() == 0) {
         painter.save();
-        const QString line1 = tr("Welcome!");
-        const QString line2 = tr("Click \"Add Instance\" to get started.");
-        auto rect = this->viewport()->rect();
-        auto font = option.font;
-        font.setPointSize(37);
-        painter.setFont(font);
-        auto fm = painter.fontMetrics();
+        QString emptyString = tr("Welcome!") + "\n" + tr("Click \"Add Instance\" to get started.");
 
-        if (rect.height() <= (fm.height() * 5) || rect.width() <= fm.horizontalAdvance(line2)) {
-            auto s = rect.height() / (5. * fm.height());
-            auto sx = rect.width() * 1. / fm.horizontalAdvance(line2);
-            if (s >= sx)
-                s = sx;
-            auto ps = font.pointSize() * s;
-            if (ps <= 0)
-                ps = 1;
-            font.setPointSize(ps);
-            painter.setFont(font);
-            fm = painter.fontMetrics();
+        // calculate the rect for the overlay
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QFont font("sans", 20);
+        font.setBold(true);
+
+        QRect bounds = viewport()->geometry();
+        bounds.moveTop(0);
+        auto innerBounds = bounds;
+        innerBounds.adjust(10, 10, -10, -10);
+
+        QColor background = QApplication::palette().color(QPalette::WindowText);
+        QColor foreground = QApplication::palette().color(QPalette::Base);
+        foreground.setAlpha(190);
+        painter.setFont(font);
+        auto fontMetrics = painter.fontMetrics();
+        auto textRect = fontMetrics.boundingRect(innerBounds, Qt::AlignHCenter | Qt::TextWordWrap, emptyString);
+        textRect.moveCenter(bounds.center());
+
+        auto wrapRect = textRect;
+        wrapRect.adjust(-10, -10, 10, 10);
+
+        // check if we are allowed to draw in our area
+        if (!event->rect().intersects(wrapRect)) {
+            return;
         }
 
-        // text
-        rect.setTop(rect.top() + fm.height() * 1.5);
-        painter.drawText(rect, Qt::AlignHCenter, line1);
-        rect.setTop(rect.top() + fm.height());
-        painter.drawText(rect, Qt::AlignHCenter, line2);
+        painter.setBrush(QBrush(background));
+        painter.setPen(foreground);
+        painter.drawRoundedRect(wrapRect, 5.0, 5.0);
+
+        painter.setPen(foreground);
+        painter.setFont(font);
+        painter.drawText(textRect, Qt::AlignHCenter | Qt::TextWordWrap, emptyString);
+
         painter.restore();
         return;
     }
@@ -837,7 +848,7 @@ QRegion InstanceView::visualRegionForSelection(const QItemSelection& selection) 
     return region;
 }
 
-QModelIndex InstanceView::moveCursor(QAbstractItemView::CursorAction cursorAction, [[maybe_unused]] Qt::KeyboardModifiers modifiers)
+QModelIndex InstanceView::moveCursor(QAbstractItemView::CursorAction cursorAction, Qt::KeyboardModifiers modifiers)
 {
     auto current = currentIndex();
     if (!current.isValid()) {
@@ -854,6 +865,7 @@ QModelIndex InstanceView::moveCursor(QAbstractItemView::CursorAction cursorActio
     if (m_currentCursorColumn < 0) {
         m_currentCursorColumn = column;
     }
+    // Handle different movement actions.
     switch (cursorAction) {
         case MoveUp: {
             if (row == 0) {
@@ -914,16 +926,47 @@ QModelIndex InstanceView::moveCursor(QAbstractItemView::CursorAction cursorActio
             if (column > 0) {
                 m_currentCursorColumn = column - 1;
                 return cat->rows[row][column - 1];
+            } else if (row > 0) {
+                row -= 1;
+                int newRowSize = cat->rows[row].size();
+                m_currentCursorColumn = newRowSize - 1;
+                return cat->rows[row][m_currentCursorColumn];
+            } else {
+                int prevGroupIndex = group_index - 1;
+                while (prevGroupIndex >= 0) {
+                    auto prevGroup = m_groups[prevGroupIndex];
+                    if (prevGroup->collapsed) {
+                        prevGroupIndex--;
+                        continue;
+                    }
+                    int lastRow = prevGroup->numRows() - 1;
+                    int lastCol = prevGroup->rows[lastRow].size() - 1;
+                    m_currentCursorColumn = lastCol;
+                    return prevGroup->rows[lastRow][lastCol];
+                }
             }
-            // TODO: moving to previous line
             return current;
         }
         case MoveRight: {
             if (column < cat->rows[row].size() - 1) {
                 m_currentCursorColumn = column + 1;
                 return cat->rows[row][column + 1];
+            } else if (row < cat->rows.size() - 1) {
+                row += 1;
+                m_currentCursorColumn = 0;
+                return cat->rows[row][m_currentCursorColumn];
+            } else {
+                int nextGroupIndex = group_index + 1;
+                while (nextGroupIndex < m_groups.size()) {
+                    auto nextGroup = m_groups[nextGroupIndex];
+                    if (nextGroup->collapsed) {
+                        nextGroupIndex++;
+                        continue;
+                    }
+                    m_currentCursorColumn = 0;
+                    return nextGroup->rows[0][0];
+                }
             }
-            // TODO: moving to next line
             return current;
         }
         case MoveHome: {
@@ -936,6 +979,7 @@ QModelIndex InstanceView::moveCursor(QAbstractItemView::CursorAction cursorActio
             return cat->rows[row][last];
         }
         default:
+            // For unsupported cursor actions, return the current index.
             break;
     }
     return current;

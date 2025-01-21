@@ -36,9 +36,9 @@
 
 #include <QDebug>
 
-MultipleOptionsTask::MultipleOptionsTask(QObject* parent, const QString& task_name) : SequentialTask(parent, task_name) {}
+MultipleOptionsTask::MultipleOptionsTask(const QString& task_name) : ConcurrentTask(task_name, 1) {}
 
-void MultipleOptionsTask::startNext()
+void MultipleOptionsTask::executeNextSubTask()
 {
     if (m_done.size() != m_failed.size()) {
         emitSucceeded();
@@ -51,7 +51,7 @@ void MultipleOptionsTask::startNext()
         return;
     }
 
-    ConcurrentTask::startNext();
+    ConcurrentTask::executeNextSubTask();
 }
 
 void MultipleOptionsTask::updateState()

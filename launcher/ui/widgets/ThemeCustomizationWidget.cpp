@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
  *  Prism Launcher - Minecraft Launcher
- *  Copyright (C) 2022 Tayou <git@tayou.org>
+ *  Copyright (C) 2024 Tayou <git@tayou.org>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ ThemeCustomizationWidget::ThemeCustomizationWidget(QWidget* parent) : QWidget(pa
 {
     ui->setupUi(this);
     loadSettings();
+    ThemeCustomizationWidget::refresh();
 
     connect(ui->iconsComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ThemeCustomizationWidget::applyIconTheme);
     connect(ui->widgetStyleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -34,11 +35,13 @@ ThemeCustomizationWidget::ThemeCustomizationWidget(QWidget* parent) : QWidget(pa
     connect(ui->backgroundCatComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ThemeCustomizationWidget::applyCatTheme);
 
     connect(ui->iconsFolder, &QPushButton::clicked, this,
-            [] { DesktopServices::openDirectory(APPLICATION->themeManager()->getIconThemesFolder().path()); });
+            [] { DesktopServices::openPath(APPLICATION->themeManager()->getIconThemesFolder().path()); });
     connect(ui->widgetStyleFolder, &QPushButton::clicked, this,
-            [] { DesktopServices::openDirectory(APPLICATION->themeManager()->getApplicationThemesFolder().path()); });
+            [] { DesktopServices::openPath(APPLICATION->themeManager()->getApplicationThemesFolder().path()); });
     connect(ui->catPackFolder, &QPushButton::clicked, this,
-            [] { DesktopServices::openDirectory(APPLICATION->themeManager()->getCatPacksFolder().path()); });
+            [] { DesktopServices::openPath(APPLICATION->themeManager()->getCatPacksFolder().path()); });
+
+    connect(ui->refreshButton, &QPushButton::clicked, this, &ThemeCustomizationWidget::refresh);
 }
 
 ThemeCustomizationWidget::~ThemeCustomizationWidget()
@@ -84,7 +87,7 @@ void ThemeCustomizationWidget::applyIconTheme(int index)
 {
     auto settings = APPLICATION->settings();
     auto originalIconTheme = settings->get("IconTheme").toString();
-    auto newIconTheme = ui->iconsComboBox->currentData().toString();
+    auto newIconTheme = ui->iconsComboBox->itemData(index).toString();
     if (originalIconTheme != newIconTheme) {
         settings->set("IconTheme", newIconTheme);
         APPLICATION->themeManager()->applyCurrentlySelectedTheme();
@@ -97,7 +100,7 @@ void ThemeCustomizationWidget::applyWidgetTheme(int index)
 {
     auto settings = APPLICATION->settings();
     auto originalAppTheme = settings->get("ApplicationTheme").toString();
-    auto newAppTheme = ui->widgetStyleComboBox->currentData().toString();
+    auto newAppTheme = ui->widgetStyleComboBox->itemData(index).toString();
     if (originalAppTheme != newAppTheme) {
         settings->set("ApplicationTheme", newAppTheme);
         APPLICATION->themeManager()->applyCurrentlySelectedTheme();
@@ -110,7 +113,7 @@ void ThemeCustomizationWidget::applyCatTheme(int index)
 {
     auto settings = APPLICATION->settings();
     auto originalCat = settings->get("BackgroundCat").toString();
-    auto newCat = ui->backgroundCatComboBox->currentData().toString();
+    auto newCat = ui->backgroundCatComboBox->itemData(index).toString();
     if (originalCat != newCat) {
         settings->set("BackgroundCat", newCat);
     }
@@ -148,6 +151,10 @@ void ThemeCustomizationWidget::loadSettings()
         int idx = 0;
         for (auto& theme : themes) {
             ui->widgetStyleComboBox->addItem(theme->name(), theme->id());
+            if (theme->tooltip() != "") {
+                int index = ui->widgetStyleComboBox->count() - 1;
+                ui->widgetStyleComboBox->setItemData(index, theme->tooltip(), Qt::ToolTipRole);
+            }
             if (currentTheme == theme->id()) {
                 ui->widgetStyleComboBox->setCurrentIndex(idx);
             }
@@ -169,3 +176,22 @@ void ThemeCustomizationWidget::retranslate()
 {
     ui->retranslateUi(this);
 }
+
+void ThemeCustomizationWidget::refresh()
+{
+    applySettings();
+    disconnect(ui->iconsComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ThemeCustomizationWidget::applyIconTheme);
+    disconnect(ui->widgetStyleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+               &ThemeCustomizationWidget::applyWidgetTheme);
+    disconnect(ui->backgroundCatComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+               &ThemeCustomizationWidget::applyCatTheme);
+    APPLICATION->themeManager()->refresh();
+    ui->iconsComboBox->clear();
+    ui->widgetStyleComboBox->clear();
+    ui->backgroundCatComboBox->clear();
+    loadSettings();
+    connect(ui->iconsComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ThemeCustomizationWidget::applyIconTheme);
+    connect(ui->widgetStyleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &ThemeCustomizationWidget::applyWidgetTheme);
+    connect(ui->backgroundCatComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ThemeCustomizationWidget::applyCatTheme);
+};

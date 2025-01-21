@@ -38,7 +38,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
-#include <QSaveFile>
 #include <QString>
 
 #include <FileSystem.h>
@@ -57,6 +56,7 @@
 #include <optional>
 
 #include "FileSystem.h"
+#include "PSaveFile.h"
 
 using std::nullopt;
 using std::optional;
@@ -183,7 +183,7 @@ bool putLevelDatDataToFS(const QFileInfo& file, QByteArray& data)
     if (fullFilePath.isNull()) {
         return false;
     }
-    QSaveFile f(fullFilePath);
+    PSaveFile f(fullFilePath);
     if (!f.open(QIODevice::WriteOnly)) {
         return false;
     }
@@ -206,8 +206,8 @@ int64_t calculateWorldSize(const QFileInfo& file)
         QDirIterator it(file.absoluteFilePath(), QDir::Files, QDirIterator::Subdirectories);
         int64_t total = 0;
         while (it.hasNext()) {
-            total += it.fileInfo().size();
             it.next();
+            total += it.fileInfo().size();
         }
         return total;
     }

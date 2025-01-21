@@ -16,7 +16,7 @@ class BasicTask : public Task {
     friend class TaskTest;
 
    public:
-    BasicTask(bool show_debug_log = true) : Task(nullptr, show_debug_log) {}
+    BasicTask(bool show_debug_log = true) : Task(show_debug_log) {}
 
    private:
     void executeTask() override { emitSucceeded(); }
@@ -37,13 +37,13 @@ class BasicTask_MultiStep : public Task {
 class BigConcurrentTask : public ConcurrentTask {
     Q_OBJECT
 
-    void startNext() override
+    void executeNextSubTask() override
     {
         // This is here only to help fill the stack a bit more quickly (if there's an issue, of course :^))
         // Each tasks thus adds 1024 * 4 bytes to the stack, at the very least.
         [[maybe_unused]] volatile std::array<uint32_t, 1024> some_data_on_the_stack{};
 
-        ConcurrentTask::startNext();
+        ConcurrentTask::executeNextSubTask();
     }
 };
 
@@ -71,11 +71,14 @@ class BigConcurrentTaskThread : public QThread {
             quit();
         });
 
-        m_deadline.start();
+        if (thread() != QThread::currentThread()) {
+            QMetaObject::invokeMethod(this, &BigConcurrentTaskThread::start_timer, Qt::QueuedConnection);
+        }
         big_task.run();
 
         exec();
     }
+    void start_timer() { m_deadline.start(); }
 
    public:
     bool passed_the_deadline = false;
