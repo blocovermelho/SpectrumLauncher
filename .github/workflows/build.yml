@@ -387,24 +387,24 @@ jobs:
           sudo codesign --sign "$APPLE_CODESIGN_ID" --deep --force --entitlements "../program_info/App.entitlements" --options runtime "SpectrumLauncher.app/Contents/MacOS/spectrumlauncher"
           mv "SpectrumLauncher.app" "Spectrum Launcher.app"
 
-      - name: Notarize (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cd ${{ env.INSTALL_DIR }}
-
-          if [ -n '${{ secrets.APPLE_NOTARIZE_PASSWORD }}' ]; then
-            ditto -c -k --sequesterRsrc --keepParent "Prism Launcher.app" ../PrismLauncher.zip
-            xcrun notarytool submit ../PrismLauncher.zip \
-              --wait --progress \
-              --apple-id '${{ secrets.APPLE_NOTARIZE_APPLE_ID }}' \
-              --team-id '${{ secrets.APPLE_NOTARIZE_TEAM_ID }}' \
-              --password '${{ secrets.APPLE_NOTARIZE_PASSWORD }}'
-
-            xcrun stapler staple "Prism Launcher.app"
-          else
-            echo ":warning: Skipping notarization as credentials are not present." >> $GITHUB_STEP_SUMMARY
-          fi
-          ditto -c -k --sequesterRsrc --keepParent "Prism Launcher.app" ../PrismLauncher.zip
+      # - name: Notarize (macOS)
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     cd ${{ env.INSTALL_DIR }}
+      #
+      #     if [ -n '${{ secrets.APPLE_NOTARIZE_PASSWORD }}' ]; then
+      #       ditto -c -k --sequesterRsrc --keepParent "Prism Launcher.app" ../PrismLauncher.zip
+      #       xcrun notarytool submit ../PrismLauncher.zip \
+      #         --wait --progress \
+      #         --apple-id '${{ secrets.APPLE_NOTARIZE_APPLE_ID }}' \
+      #         --team-id '${{ secrets.APPLE_NOTARIZE_TEAM_ID }}' \
+      #         --password '${{ secrets.APPLE_NOTARIZE_PASSWORD }}'
+      #
+      #       xcrun stapler staple "Prism Launcher.app"
+      #     else
+      #       echo ":warning: Skipping notarization as credentials are not present." >> $GITHUB_STEP_SUMMARY
+      #     fi
+      #     ditto -c -k --sequesterRsrc --keepParent "Prism Launcher.app" ../PrismLauncher.zip
 
       - name: Make Sparkle signature (macOS)
         if: matrix.name == 'macOS'
@@ -682,11 +682,11 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v8
 
         # For in-tree builds
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v15
-        with:
-          name: prismlauncher
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      # - name: Setup Cachix
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: prismlauncher
+      #     authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run flake checks
         run: |
