@@ -3,7 +3,7 @@
 #endif
 #include <windows.h>
 
-IDI_ICON1               ICON    DISCARDABLE     "prismlauncher.ico"
+IDI_ICON1               ICON    DISCARDABLE     "spectrumlauncher.ico"
 1 RT_MANIFEST "spectrumlauncher.manifest"
 
 VS_VERSION_INFO VERSIONINFO
