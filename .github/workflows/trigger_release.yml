@@ -78,7 +78,6 @@ jobs:
             test -n "${INST}" || zip -r -9 "../${NAME}-${{ env.VERSION }}.zip" *
             cd ..
           done
-
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -107,3 +106,9 @@ jobs:
             SpectrumLauncher-macOS-${{ env.VERSION }}.tar.gz
             SpectrumLauncher-macOS-Legacy-${{ env.VERSION }}.tar.gz
             SpectrumLauncher-${{ env.VERSION }}.tar.gz
+      - name: Setup Upterm
+        id: setup_upterm
+        uses: lhotari/action-upterm@v1
+        with:
+         limit-access-to-actor: true
+         limit-access-to-users: alikindsys
