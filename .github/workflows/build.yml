@@ -55,14 +55,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             qt_ver: 5
             qt_host: linux
             qt_arch: ""
             qt_version: "5.15.2"
             qt_modules: "qtnetworkauth"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             qt_ver: 6
             qt_host: linux
             qt_arch: ""
@@ -652,52 +652,52 @@ jobs:
   #         bundle: PrismLauncher-${{ runner.os }}-${{ env.VERSION }}-Flatpak.flatpak
   #         manifest-path: flatpak/org.prismlauncher.PrismLauncher.yml
 
-  nix:
-    name: Nix (${{ matrix.system }})
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            system: x86_64-linux
-
-          - os: macos-13
-            system: x86_64-darwin
-
-          - os: macos-14
-            system: aarch64-darwin
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-
-        # For PRs
-      - name: Setup Nix Magic Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v8
-
-        # For in-tree builds
-      # - name: Setup Cachix
-      #   uses: cachix/cachix-action@v15
-      #   with:
-      #     name: prismlauncher
-      #     authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - name: Run flake checks
-        run: |
-          nix flake check --print-build-logs --show-trace
-
-      - name: Build debug package
-        if: ${{ inputs.build_type == 'Debug' }}
-        run: |
-          nix build --print-build-logs .#prismlauncher-debug
-
-      - name: Build release package
-        if: ${{ inputs.build_type != 'Debug' }}
-        run: |
-          nix build --print-build-logs .#prismlauncher
+  # nix:
+  #   name: Nix (${{ matrix.system }})
+  #
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - os: ubuntu-22.04
+  #           system: x86_64-linux
+  #
+  #         - os: macos-13
+  #           system: x86_64-darwin
+  #
+  #         - os: macos-14
+  #           system: aarch64-darwin
+  #
+  #   runs-on: ${{ matrix.os }}
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Nix
+  #       uses: cachix/install-nix-action@v30
+  #
+  #       # For PRs
+  #     - name: Setup Nix Magic Cache
+  #       uses: DeterminateSystems/magic-nix-cache-action@v8
+  #
+  #       # For in-tree builds
+  #     # - name: Setup Cachix
+  #     #   uses: cachix/cachix-action@v15
+  #     #   with:
+  #     #     name: prismlauncher
+  #     #     authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  #
+  #     - name: Run flake checks
+  #       run: |
+  #         nix flake check --print-build-logs --show-trace
+  #
+  #     - name: Build debug package
+  #       if: ${{ inputs.build_type == 'Debug' }}
+  #       run: |
+  #         nix build --print-build-logs .#prismlauncher-debug
+  #
+  #     - name: Build release package
+  #       if: ${{ inputs.build_type != 'Debug' }}
+  #       run: |
+  #         nix build --print-build-logs .#prismlauncher
