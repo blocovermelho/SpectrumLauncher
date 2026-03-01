@@ -1,0 +1,52 @@
+diff --git a/program_info/org.prismlauncher.PrismLauncher.Social.svg b/program_info/org.blocovermelho.SpectrumLauncher.Social.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.Social.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.Social.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.Source.svg b/program_info/org.blocovermelho.SpectrumLauncher.Source.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.Source.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.Source.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.bigsur.svg b/program_info/org.blocovermelho.SpectrumLauncher.bigsur.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.bigsur.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.bigsur.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.desktop.in b/program_info/org.blocovermelho.SpectrumLauncher.desktop.in
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.desktop.in
+rename to program_info/org.blocovermelho.SpectrumLauncher.desktop.in
+diff --git a/program_info/org.prismlauncher.PrismLauncher.logo-darkmode.svg b/program_info/org.blocovermelho.SpectrumLauncher.logo-darkmode.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.logo-darkmode.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.logo-darkmode.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.logo.source.svg b/program_info/org.blocovermelho.SpectrumLauncher.logo.source.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.logo.source.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.logo.source.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.logo.svg b/program_info/org.blocovermelho.SpectrumLauncher.logo.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.logo.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.logo.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher.metainfo.xml.in b/program_info/org.blocovermelho.SpectrumLauncher.metainfo.xml.in
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.metainfo.xml.in
+rename to program_info/org.blocovermelho.SpectrumLauncher.metainfo.xml.in
+diff --git a/program_info/org.prismlauncher.PrismLauncher.svg b/program_info/org.blocovermelho.SpectrumLauncher.svg
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher.svg
+rename to program_info/org.blocovermelho.SpectrumLauncher.svg
+diff --git a/program_info/org.prismlauncher.PrismLauncher_256.png b/program_info/org.blocovermelho.SpectrumLauncher_256.png
+similarity index 100%
+rename from program_info/org.prismlauncher.PrismLauncher_256.png
+rename to program_info/org.blocovermelho.SpectrumLauncher_256.png
+diff --git a/program_info/prismlauncher-monochrome.Source.svg b/program_info/spectrumlauncher-monochrome.Source.svg
+similarity index 100%
+rename from program_info/prismlauncher-monochrome.Source.svg
+rename to program_info/spectrumlauncher-monochrome.Source.svg
+diff --git a/program_info/prismlauncher.6.scd b/program_info/spectrumlauncher.6.scd
+similarity index 100%
+rename from program_info/prismlauncher.6.scd
+rename to program_info/spectrumlauncher.6.scd
+diff --git a/program_info/prismlauncher.icns b/program_info/spectrumlauncher.icns
+similarity index 100%
+rename from program_info/prismlauncher.icns
+rename to program_info/spectrumlauncher.icns
