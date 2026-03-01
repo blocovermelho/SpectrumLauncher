@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
   <id>@Launcher_AppID@</id>
-  <name>Prism Launcher</name>
+  <name>@Launcher_DisplayName@</name>
   <summary>Custom Minecraft Launcher to easily manage multiple Minecraft installations at once</summary>
   <developer id="org.prismlauncher">
     <name>Prism Launcher Contributors</name>
@@ -9,7 +9,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <description>
-    <p>Prism Launcher is a custom launcher for Minecraft that focuses on predictability, long term stability and simplicity.</p>
+    <p>@Launcher_DisplayName@ is a custom launcher for Minecraft that focuses on predictability, long term stability and simplicity.</p>
     <p>Features:</p>
     <ul>
       <li>Easily install game modifications, such as Fabric, Forge and Quilt</li>
